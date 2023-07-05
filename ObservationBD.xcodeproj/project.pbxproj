@@ -17,6 +17,7 @@
 		3415A8CB2A51C2A200C3B42E /* ObservationRegistrar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3415A8CA2A51C2A200C3B42E /* ObservationRegistrar.swift */; };
 		3415A8F72A51D32500C3B42E /* ObservationBD.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3415A8AF2A51ADC000C3B42E /* ObservationBD.framework */; };
 		3415A9022A51D37200C3B42E /* ObservableMacros.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3415A9012A51D37100C3B42E /* ObservableMacros.swift */; };
+		343EE37B2A55CB1A0070B3E4 /* CollectionOfOneExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 343EE37A2A55CB1A0070B3E4 /* CollectionOfOneExtensions.swift */; };
 		346E1CCC2A51E259008436F1 /* libObservationBDMacros.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 349AC0AB2A51DD25003E78DA /* libObservationBDMacros.dylib */; };
 		349AC0B62A51DD6F003E78DA /* ObservableMacro.swift in Sources */ = {isa = PBXBuildFile; fileRef = 349AC0B42A51DD6F003E78DA /* ObservableMacro.swift */; };
 		349AC0B72A51DD6F003E78DA /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 349AC0B52A51DD6F003E78DA /* Extensions.swift */; };
@@ -103,6 +104,7 @@
 		3415A8CA2A51C2A200C3B42E /* ObservationRegistrar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationRegistrar.swift; sourceTree = "<group>"; };
 		3415A9002A51D33500C3B42E /* ObservationBDSample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ObservationBDSample.entitlements; sourceTree = "<group>"; };
 		3415A9012A51D37100C3B42E /* ObservableMacros.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservableMacros.swift; sourceTree = "<group>"; };
+		343EE37A2A55CB1A0070B3E4 /* CollectionOfOneExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionOfOneExtensions.swift; sourceTree = "<group>"; };
 		349AC0AB2A51DD25003E78DA /* libObservationBDMacros.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libObservationBDMacros.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		349AC0B42A51DD6F003E78DA /* ObservableMacro.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ObservableMacro.swift; sourceTree = "<group>"; };
 		349AC0B52A51DD6F003E78DA /* Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
@@ -202,6 +204,7 @@
 				3415A8C62A51B1C100C3B42E /* ObservationTLS.swift */,
 				3415A8C82A51BEE300C3B42E /* ObservationTracking.swift */,
 				3415A8CA2A51C2A200C3B42E /* ObservationRegistrar.swift */,
+				343EE37A2A55CB1A0070B3E4 /* CollectionOfOneExtensions.swift */,
 			);
 			path = ObservationBD;
 			sourceTree = "<group>";
@@ -466,6 +469,7 @@
 				3415A8C52A51AE0200C3B42E /* AllocatedLock.swift in Sources */,
 				3415A8C72A51B1C100C3B42E /* ObservationTLS.swift in Sources */,
 				3415A9022A51D37200C3B42E /* ObservableMacros.swift in Sources */,
+				343EE37B2A55CB1A0070B3E4 /* CollectionOfOneExtensions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

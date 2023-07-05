@@ -10,156 +10,168 @@ public typealias _ObservationRegistrarState = (
   observations: [Int: _ObservationRegistrarStateObservation],
   lookups: [AnyKeyPath: Set<Int>]
 )
+public typealias ObservationRegistrarState = CollectionOfOne<_ObservationRegistrarState>
 
-@inlinable
-func _makeObservationRegistrarState() -> _ObservationRegistrarState {
-  (
-    id: 0,
-    observations: [:],
-    lookups: [:]
-  )
-}
-
-@inlinable
-func _generateId(observationRegistrarState state: inout _ObservationRegistrarState) -> Int {
-  defer { state.id += 1 }
-  return state.id
-}
-
-@inlinable
-func _registerTracking(
-  observationRegistrarState state: inout _ObservationRegistrarState,
-  for properties: Set<AnyKeyPath>,
-  observer: @Sendable @escaping () -> Void
-) -> Int {
-  let id = _generateId(observationRegistrarState: &state)
-  state.observations[id] = (properties: properties, observer: observer)
-  for keyPath in properties {
-    state.lookups[keyPath, default: []].insert(id)
+extension ObservationRegistrarState {
+  @inlinable
+  public init() {
+    self.init((
+      id: 0,
+      observations: [:],
+      lookups: [:]
+    ))
   }
-  return id
-}
 
-@inlinable
-func _cancel(observationRegistrarState state: inout _ObservationRegistrarState, _ id: Int) {
-  if let tracking = state.observations.removeValue(forKey: id) {
+  @inlinable
+  mutating func generateId() -> Int {
+    defer { element.id += 1}
+    return element.id
+  }
+
+  @inlinable
+  mutating func registerTracking(
+    for properties: Set<AnyKeyPath>,
+    observer: @Sendable @escaping () -> Void
+  ) -> Int {
+    let id = generateId()
+    element.observations[id] = (properties: properties, observer: observer)
+    for keyPath in properties {
+      element.lookups[keyPath, default: []].insert(id)
+    }
+    return id
+  }
+
+  @inlinable
+  mutating func cancel(id: Int) {
+    guard let tracking = element.observations.removeValue(forKey: id) else {
+      return
+    }
     for keyPath in tracking.properties {
-      if var ids = state.lookups[keyPath] {
-        ids.remove(id)
-        if ids.count == 0 {
-          state.lookups.removeValue(forKey: keyPath)
-        } else {
-          state.lookups[keyPath] = ids
+      guard var ids = element.lookups[keyPath] else {
+        continue
+      }
+      ids.remove(id)
+      element.lookups[keyPath] = ids.isEmpty ? nil : ids
+    }
+  }
+
+  @inlinable
+  mutating func willSet(keyPath: AnyKeyPath) -> [@Sendable () -> Void] {
+    var observers = [@Sendable () -> Void]()
+    if let ids = element.lookups[keyPath] {
+      for id in ids {
+        if let observation = element.observations[id] {
+          observers.append(observation.observer)
+          cancel(id: id)
         }
       }
     }
+    return observers
   }
-}
-
-@inlinable
-func _willSet(
-  observationRegistrarState state: inout _ObservationRegistrarState,
-  keyPath: AnyKeyPath
-) -> [@Sendable () -> Void] {
-  var observers = [@Sendable () -> Void]()
-  if let ids = state.lookups[keyPath] {
-    for id in ids {
-      if let observation = state.observations[id] {
-        observers.append(observation.observer)
-        _cancel(observationRegistrarState: &state, id)
-      }
-    }
-  }
-  return observers
 }
 
 public typealias _ObservationRegistrarStateObservation = (properties: Set<AnyKeyPath>, observer: @Sendable () -> Void)
 
 public typealias _ObservationRegistrarContext = _AllocatedLock<_ObservationRegistrarState>
+public typealias ObservationRegistrarContext = CollectionOfOne<AllocatedLock<ObservationRegistrarState>>
 
-@inlinable
-func _makeObservationRegistrarContext(state: _ObservationRegistrarState) -> _ObservationRegistrarContext {
-  _makeAllocatedLock(state: state)
-}
-
-@inlinable
-func _getId(observationRegistrarContext context: _ObservationRegistrarContext) -> ObjectIdentifier {
-  ObjectIdentifier(context)
-}
-
-@inlinable
-func _registerTracking(
-  observationRegistrarContext context: _ObservationRegistrarContext,
-  for properties: Set<AnyKeyPath>,
-  observer: @Sendable @escaping () -> Void
-) -> Int {
-  _withLockedAllocatedLock(context) { state in
-    _registerTracking(observationRegistrarState: &state, for: properties, observer: observer)
+extension ObservationRegistrarContext {
+  @inlinable
+  init(state: ObservationRegistrarState) {
+    self.init(AllocatedLock(state: state))
   }
-}
 
-@inlinable
-func _cancel(observationRegistrarContext context: _ObservationRegistrarContext, _ id: Int) {
-  _withLockedAllocatedLock(context) { _cancel(observationRegistrarState: &$0, id) }
-}
-
-@inlinable
-func _willSet<Subject, Member>(
-  observationRegistrarContext context: _ObservationRegistrarContext,
-  keyPath: KeyPath<Subject, Member>
-) {
-  let actions = _withLockedAllocatedLock(context) { _willSet(observationRegistrarState: &$0, keyPath: keyPath) }
-  for action in actions {
-    action()
+  @inlinable
+  var id: ObjectIdentifier {
+    ObjectIdentifier(element.element)
   }
-}
 
-public typealias _ObservationRegistrar = (context: _ObservationRegistrarContext, dummy: Void)
-
-@inlinable
-public func _makeObservationRegistrar() -> _ObservationRegistrar {
-  (context: _makeObservationRegistrarContext(state: _makeObservationRegistrarState()), dummy: ())
-}
-
-@inlinable
-public func _access<Subject, Member>(
-  observationRegistrar: _ObservationRegistrar,
-  keyPath: KeyPath<Subject, Member>
-) {
-  if let trackingPtr = _getObservationTLSValue() {
-    if trackingPtr.pointee == nil {
-      trackingPtr.pointee = _makeObservationTrackingAccessList()
+  @inlinable
+  func registerTracking(
+    for properties: Set<AnyKeyPath>,
+    observer: @Sendable @escaping () -> Void
+  ) -> Int {
+    element.withLocked { state in
+      state.registerTracking(for: properties, observer: observer)
     }
-    _addAccessToObservationTrackingAccessList(
-      &trackingPtr.pointee!,
+  }
+
+  @inlinable
+  func cancel(id: Int) {
+    element.withLocked { $0.cancel(id: id) }
+  }
+
+  @inlinable
+  func willSet<Subject, Member>(keyPath: KeyPath<Subject, Member>) {
+    let actions = element.withLocked { $0.willSet(keyPath: keyPath) }
+    for action in actions {
+      action()
+    }
+  }
+}
+
+public typealias ObservationRegistrar = CollectionOfOne<ObservationRegistrarContext>
+
+extension ObservationRegistrar {
+  @inlinable
+  public init() where Element == ObservationRegistrarContext {
+    self.init(ObservationRegistrarContext(state: ObservationRegistrarState()))
+  }
+
+  @inlinable
+  public func access<Subject, Member>(keyPath: KeyPath<Subject, Member>) {
+    guard let trackingPtr = _getObservationTLSValue() else {
+      return
+    }
+    if trackingPtr.pointee == nil {
+      trackingPtr.pointee = ObservationTrackingAccessList()
+    }
+    trackingPtr.pointee!.addAccess(
       keyPath: keyPath,
-      context: observationRegistrar.context
+      context: element
     )
   }
+
+  @inlinable
+  public func willSet<Subject, Member>(keyPath: KeyPath<Subject, Member>) {
+    element.willSet(keyPath: keyPath)
+  }
+
+  @inlinable
+  public func didSet<Subject, Member>(keyPath: KeyPath<Subject, Member>) {
+  }
+
+  @inlinable
+  public func withMutation<Subject, Member, T>(
+    keyPath: KeyPath<Subject, Member>,
+    _ mutation: () throws -> T
+  ) rethrows -> T {
+    willSet(keyPath: keyPath)
+    defer { didSet(keyPath: keyPath) }
+    return try mutation()
+  }
 }
 
-@inlinable
-public func _willSet<Subject, Member>(
-  observationRegistrar: _ObservationRegistrar,
-  keyPath: KeyPath<Subject, Member>
-) {
-  _willSet(observationRegistrarContext: observationRegistrar.context, keyPath: keyPath)
+extension ObservationRegistrar: Sendable {}
+
+extension ObservationRegistrar: Equatable {
+  @inlinable
+  public static func ==(lhs: Self, rhs: Self) -> Bool {
+    true
+  }
 }
 
-@inlinable
-public func _didSet<Subject, Member>(
-  observationRegistrar: _ObservationRegistrar,
-  keyPath: KeyPath<Subject, Member>
-) {
+extension ObservationRegistrar: Hashable {
+  @inlinable
+  public func hash(into _: inout Hasher) {}
 }
 
-@inlinable
-public func _withMutation<Subject, Member, T>(
-  observationRegistrar: _ObservationRegistrar,
-  keyPath: KeyPath<Subject, Member>,
-  _ mutation: () throws -> T
-) rethrows -> T {
-  _willSet(observationRegistrar: observationRegistrar, keyPath: keyPath)
-  defer { _didSet(observationRegistrar: observationRegistrar, keyPath: keyPath) }
-  return try mutation()
+extension ObservationRegistrar: Codable {
+  @inlinable
+  public init(from decoder: Decoder) throws {
+    self.init()
+  }
+
+  @inlinable
+  public func encode(to encoder: Encoder) throws {}
 }

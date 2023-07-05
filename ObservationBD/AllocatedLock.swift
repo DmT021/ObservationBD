@@ -6,23 +6,27 @@
 //
 
 public typealias _AllocatedLock<T> = ManagedBuffer<T, _RawLock>
+public typealias AllocatedLock<T> = CollectionOfOne<_AllocatedLock<T>>
 
-@inlinable
-func _makeAllocatedLock<T>(state: T) -> _AllocatedLock<T> {
-  _AllocatedLock<T>.create(minimumCapacity: 1) { buffer in
-    buffer.withUnsafeMutablePointerToElements { lock in
-      raw_lock_init(lock)
+extension CollectionOfOne {
+  @inlinable
+  init<T>(state: T) where Element == _AllocatedLock<T> {
+    let lock = _AllocatedLock<T>.create(minimumCapacity: 1) { buffer in
+      buffer.withUnsafeMutablePointerToElements { lock in
+        raw_lock_init(lock)
+      }
+      return state
     }
-    return state
+    self.init(lock)
   }
-}
 
-@inlinable
-func _withLockedAllocatedLock<T, R>(_ lock: _AllocatedLock<T>, _ function: (inout T) throws -> R) rethrows -> R {
-  try lock.withUnsafeMutablePointers { state, lock in
-    raw_lock_lock(lock)
-    defer { raw_lock_unlock(lock) }
-    return try function(&state.pointee)
+  @inlinable
+  func withLocked<T, R>(_ function: (inout T) throws -> R) rethrows -> R where Element == _AllocatedLock<T> {
+    try element.withUnsafeMutablePointers { state, lock in
+      raw_lock_lock(lock)
+      defer { raw_lock_unlock(lock) }
+      return try function(&state.pointee)
+    }
   }
 }
 

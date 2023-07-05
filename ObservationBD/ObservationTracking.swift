@@ -11,68 +11,71 @@ typealias _ObservationTrackingEntry = (
   cancel: @Sendable (Int) -> Void,
   properties: Set<AnyKeyPath>
 )
+@usableFromInline
+typealias ObservationTrackingEntry = CollectionOfOne<_ObservationTrackingEntry>
 
-@inlinable
-func _makeObservationTrackingEntry(_ context: _ObservationRegistrarContext) -> _ObservationTrackingEntry {
-  (
-    registerTracking: { properties, observer in
-      _registerTracking(observationRegistrarContext: context, for: properties, observer: observer)
-    },
-    cancel: { id in
-      _cancel(observationRegistrarContext: context, id)
-    },
-    properties: Set<AnyKeyPath>()
-  )
-}
+extension ObservationTrackingEntry {
+  @inlinable
+  init(context: ObservationRegistrarContext) {
+    self.init((
+      registerTracking: { properties, observer in
+        context.registerTracking(for: properties, observer: observer)
+      },
+      cancel: { id in
+        context.cancel(id: id)
+      },
+      properties: Set<AnyKeyPath>()
+    ))
+  }
 
-@inlinable
-func _addObserver(
-  observationTrackingEntry entry: _ObservationTrackingEntry,
-  _ function: @Sendable @escaping () -> Void
-) -> Int {
-  entry.registerTracking(entry.properties, function)
+  @inlinable
+  func addObserver(_ function: @Sendable @escaping () -> Void) -> Int {
+    element.registerTracking(element.properties, function)
+  }
 }
 
 @usableFromInline
-typealias _ObservationTrackingAccessList = [ObjectIdentifier: _ObservationTrackingEntry]
+typealias _ObservationTrackingAccessList = [ObjectIdentifier: ObservationTrackingEntry]
 
-@inlinable
-func _makeObservationTrackingAccessList() -> _ObservationTrackingAccessList {
-  [:]
-}
+@usableFromInline
+typealias ObservationTrackingAccessList = CollectionOfOne<_ObservationTrackingAccessList>
 
-@inlinable
-func _addAccessToObservationTrackingAccessList<Subject>(
-  _ list: inout _ObservationTrackingAccessList,
-  keyPath: PartialKeyPath<Subject>,
-  context: _ObservationRegistrarContext
-) {
-  list[_getId(observationRegistrarContext: context), default: _makeObservationTrackingEntry(context)]
-    .properties.insert(keyPath)
-}
+extension ObservationTrackingAccessList {
+  @inlinable
+  init() {
+    self.init([:])
+  }
 
-@inlinable
-func _mergeObservationTrackingAccessList(
-  _ list: inout _ObservationTrackingAccessList,
-  _ other: _ObservationTrackingAccessList
-) {
-  for (identifier, entry) in other {
-    list[identifier, default: entry].properties.formUnion(entry.properties)
+  @inlinable
+  mutating func addAccess<Subject>(
+    keyPath: PartialKeyPath<Subject>,
+    context: ObservationRegistrarContext
+  ) {
+    element[context.id, default: ObservationTrackingEntry(context: context)].element
+      .properties.insert(keyPath)
+  }
+
+  @inlinable
+  mutating func merge(_ other: ObservationTrackingAccessList) {
+    for (identifier, entry) in other.element {
+      element[identifier, default: entry].element
+        .properties.formUnion(entry.element.properties)
+    }
   }
 }
 
 public func withObservationTrackingBD<T>(
   _ apply: () -> T,
-  onChange: @escaping @Sendable () -> Void
+  onChange: @autoclosure () -> @Sendable () -> Void
 ) -> T {
-  var accessList: _ObservationTrackingAccessList?
+  var accessList: ObservationTrackingAccessList?
   let result = withUnsafeMutablePointer(to: &accessList) { ptr in
     let previous = _getObservationTLSValue()
     _setObservationTLSValue(ptr)
     defer {
       if let scoped = ptr.pointee, let previous {
         if var prevList = previous.pointee {
-          _mergeObservationTrackingAccessList(&prevList, scoped)
+          prevList.merge(scoped)
           previous.pointee = prevList
         } else {
           previous.pointee = scoped
@@ -83,18 +86,18 @@ public func withObservationTrackingBD<T>(
     return apply()
   }
   if let list = accessList {
-    let state = _makeAllocatedLock(state: [ObjectIdentifier: Int]())
-//    let onChange = onChange()
-    let values = list.mapValues {
-      _addObserver(observationTrackingEntry: $0) {
+    let state = AllocatedLock(state: [ObjectIdentifier: Int]())
+    let onChange = onChange()
+    let values = list.element.mapValues {
+      $0.addObserver {
         onChange()
-        let values = _withLockedAllocatedLock(state) { $0 }
+        let values = state.withLocked { $0 }
         for (id, token) in values {
-          list[id]?.cancel(token)
+          list.element[id]?.element.cancel(token)
         }
       }
     }
-    _withLockedAllocatedLock(state) { $0 = values }
+    state.withLocked { $0 = values }
   }
   return result
 }

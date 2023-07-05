@@ -8,15 +8,15 @@
 
 #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
 @inlinable
-func _getObservationTLSValue() -> UnsafeMutablePointer<_ObservationTrackingAccessList?>? {
-  if let value = Thread.current.threadDictionary[_observationTLSKey] as? UnsafeMutablePointer<_ObservationTrackingAccessList?>? {
+func _getObservationTLSValue() -> UnsafeMutablePointer<ObservationTrackingAccessList?>? {
+  if let value = Thread.current.threadDictionary[_observationTLSKey] as? UnsafeMutablePointer<ObservationTrackingAccessList?>? {
     return value
   }
   return nil
 }
 
 @inlinable
-func _setObservationTLSValue(_ value: UnsafeMutablePointer<_ObservationTrackingAccessList?>?) {
+func _setObservationTLSValue(_ value: UnsafeMutablePointer<ObservationTrackingAccessList?>?) {
   Thread.current.threadDictionary[_observationTLSKey] = value
 }
 

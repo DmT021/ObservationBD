@@ -29,7 +29,6 @@ struct ContentView: View {
         } label: {
           Text("Increment")
         }
-
       }
       .padding()
     }

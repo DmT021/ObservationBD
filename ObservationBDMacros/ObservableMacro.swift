@@ -29,7 +29,7 @@ public struct ObservableBDMacro {
     "\(raw: qualifiedConformanceName)"
   }
 
-  static let registrarTypeName = "_ObservationRegistrar"
+  static let registrarTypeName = "ObservationRegistrar"
   static var qualifiedRegistrarTypeName: String {
     return "\(moduleName).\(registrarTypeName)"
   }
@@ -42,7 +42,7 @@ public struct ObservableBDMacro {
   static func registrarVariable(_ observableType: TokenSyntax) -> DeclSyntax {
     return
       """
-      @\(raw: ignoredMacroName) private let \(raw: registrarVariableName) = \(raw: moduleName)._makeObservationRegistrar()
+      @\(raw: ignoredMacroName) private let \(raw: registrarVariableName) = \(raw: qualifiedRegistrarTypeName)()
       """
   }
 
@@ -52,7 +52,7 @@ public struct ObservableBDMacro {
       internal nonisolated func access<Member>(
           keyPath: KeyPath<\(observableType), Member>
       ) {
-        \(raw: moduleName)._access(observationRegistrar: _$observationRegistrar, keyPath: keyPath)
+        \(raw: registrarVariableName).access(keyPath: keyPath)
       }
       """
   }
@@ -64,7 +64,7 @@ public struct ObservableBDMacro {
         keyPath: KeyPath<\(observableType), Member>,
         _ mutation: () throws -> T
       ) rethrows -> T {
-        try \(raw: moduleName)._withMutation(observationRegistrar: _$observationRegistrar, keyPath: keyPath, mutation)
+        try \(raw: registrarVariableName).withMutation(keyPath: keyPath, mutation)
       }
       """
   }
