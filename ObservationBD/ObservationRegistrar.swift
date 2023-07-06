@@ -151,27 +151,3 @@ extension ObservationRegistrar {
     return try mutation()
   }
 }
-
-extension ObservationRegistrar: Sendable {}
-
-extension ObservationRegistrar: Equatable {
-  @inlinable
-  public static func ==(lhs: Self, rhs: Self) -> Bool {
-    true
-  }
-}
-
-extension ObservationRegistrar: Hashable {
-  @inlinable
-  public func hash(into _: inout Hasher) {}
-}
-
-extension ObservationRegistrar: Codable {
-  @inlinable
-  public init(from decoder: Decoder) throws {
-    self.init()
-  }
-
-  @inlinable
-  public func encode(to encoder: Encoder) throws {}
-}
