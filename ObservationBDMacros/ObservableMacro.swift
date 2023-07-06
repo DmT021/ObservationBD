@@ -262,33 +262,6 @@ extension ObservableBDMacro: MemberAttributeMacro {
   }
 }
 
-extension ObservableBDMacro: ConformanceMacro {
-  public static func expansion<Declaration: DeclGroupSyntax, Context: MacroExpansionContext>(
-    of node: AttributeSyntax,
-    providingConformancesOf declaration: Declaration,
-    in context: Context
-  ) throws -> [(TypeSyntax, GenericWhereClauseSyntax?)] {
-    let inheritanceList: InheritedTypeListSyntax?
-    if let classDecl = declaration.as(ClassDeclSyntax.self) {
-      inheritanceList = classDecl.inheritanceClause?.inheritedTypeCollection
-    } else if let structDecl = declaration.as(StructDeclSyntax.self) {
-      inheritanceList = structDecl.inheritanceClause?.inheritedTypeCollection
-    } else {
-      inheritanceList = nil
-    }
-
-    if let inheritanceList {
-      for inheritance in inheritanceList {
-        if inheritance.typeName.identifier == ObservableBDMacro.conformanceName {
-          return []
-        }
-      }
-    }
-
-    return [(ObservableBDMacro.observableConformanceType, nil)]
-  }
-}
-
 public struct ObservationTrackedBDMacro: AccessorMacro {
   public static func expansion<
     Context: MacroExpansionContext,

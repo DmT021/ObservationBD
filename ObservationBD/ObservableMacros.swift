@@ -9,13 +9,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-public protocol Observable {}
-
 #if $Macros && hasAttribute(attached)
 
 @attached(member, names: named(_$observationRegistrar), named(access), named(withMutation), arbitrary)
 @attached(memberAttribute)
-@attached(conformance)
 public macro ObservableBD() =
   #externalMacro(module: "ObservationBDMacros", type: "ObservableBDMacro")
 
